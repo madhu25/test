@@ -1,0 +1,97 @@
+---
+- hosts: all
+  remote_user: ubuntu
+  sudo: yes
+  tasks:
+    - name: Installation of packages
+      apt: name={{ item }} state=present force=true
+      with_items:
+        - git-core
+        - apache2
+        - tomcat7
+        - mysql-server-5.6
+
+    - name: Enabling services on start up
+      service: name={{ item }} state=started enabled=yes
+      with_items:
+        - apache2
+        - tomcat7
+        - mysql
+    - name: Creating Tomcat71 instance
+      file: path=/var/lib/tomcat71 state=directory mode=0777
+
+    - name: Creating Tomcat72 instance
+      file: path=/var/lib/tomcat72 state=directory mode=0777
+
+    - name: Creating conf files for Tomcat instances
+      file: path=/var/lib/tomcat71/{{ item }} state=directory mode=0777 owner=tomcat7
+      with_items:
+        - conf
+        - temp
+        - webapps
+        - work
+        - logs
+
+    - name: Creating conf files for Tomcat instances
+      file: path=/var/lib/tomcat72/{{ item }} state=directory mode=0777 owner=tomcat7
+      with_items:
+        - conf
+        - temp
+        - webapps
+        - work
+        - logs
+        
+    - name: Link tomcat instance 1
+      file: src=/var/lib/tomcat7/conf/{{ item }} dest=/var/lib/tomcat71/conf/ state=link
+      with_items:
+        - catalina.properties
+        - web.xml
+        - server.xml
+        - policy.d
+      
+    - name: Link tomcat instance 2
+      file: src=/var/lib/tomcat7/conf/{{ item }} dest=/var/lib/tomcat72/conf/ state=link
+      with_items:
+        - catalina.properties
+        - web.xml
+        - server.xml
+        - policy.d
+        
+    - name: Instance 1 | Create Service
+      copy: src=/etc/init.d/tomcat7 dest=/etc/init.d/{{ item }}
+      with_items:
+        - tomcat71
+        - tomcat72
+        
+    - name: Create /usr/share/tomcat7 for new instances
+      file: path=/usr/share/{{ item }} state=directory
+      with_items:
+       - tomcat71
+       - tomcat72
+       
+    - name: Copy content to new instances
+      copy: src=/usr/share/tomcat7/* dest=/usr/share/{{ item }}
+      with_items:
+       - tomcat71
+       - tomcat72
+      
+    - name: Deploy application
+      git: repo=https://github.com/madhu25/test.git
+           dest=/var/lib/{{ item }}/webapps/test
+      with_items:
+        - tomcat71
+        - tomcat72
+    - name: Delete configuration file of apache2 and replace with new one
+      file: path=/etc/apache2/sites-enabled/000-default.conf state=absent
+      
+    - name: Adding already created Load balancing file
+      file: src=./000-default.conf dest=/etc/apache2/sites-enabled/000-default.conf
+      
+    - name: Start all services
+      service: name={{ item }} state=started enabled=yes
+      with_items:
+       - tomcat7
+       - tomcat71
+       - tomcat72
+       - apache2
+       - mysql
