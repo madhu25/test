@@ -76,7 +76,7 @@
        - tomcat72
       
     - name: Deploy application
-      git: repo=https://github.com/madhu25/test.git
+      copy: src=./sample.war 
            dest=/var/lib/{{ item }}/webapps/test
       with_items:
         - tomcat71
