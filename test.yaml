@@ -76,7 +76,11 @@
        - tomcat72
       
     - name: Deploy application
+<<<<<<< HEAD
       copy: src=./sample.war 
+=======
+      git: repo=https://github.com/madhu25/test.git
+>>>>>>> 9793489... ansible script
            dest=/var/lib/{{ item }}/webapps/test
       with_items:
         - tomcat71
